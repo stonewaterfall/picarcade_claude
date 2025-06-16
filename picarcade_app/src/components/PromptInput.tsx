@@ -4,10 +4,10 @@ import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
-import { Wand2, Upload, Link, Sparkles } from 'lucide-react'
+import { Wand2, Upload, Sparkles } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
-import { USER_SCENARIOS, getScenariosByCategory } from '@/lib/prompt-scenarios'
-import { AI_MODELS, getModelsByType } from '@/lib/ai-models'
+import { getScenariosByCategory } from '@/lib/prompt-scenarios'
+import { getModelsByType } from '@/lib/ai-models'
 
 interface PromptInputProps {
   onGenerate: (prompt: string, modelId: string, inputImage?: string) => void

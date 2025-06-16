@@ -1,5 +1,5 @@
-import axios, { AxiosResponse } from 'axios'
-import { AIModel, getModelById } from './ai-models'
+import axios from 'axios'
+import { getModelById } from './ai-models'
 
 export interface APIResponse<T = any> {
   success: boolean

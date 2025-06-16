@@ -42,24 +42,11 @@ export function getOrCreateUserId(): string {
   }
 }
 
-/**
- * Clear the current user ID (useful for testing or user logout)
- */
-export function clearUserId(): void {
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.removeItem(USER_ID_KEY);
-      console.log('🗑️ User ID cleared');
-    } catch (error) {
-      console.warn('Failed to clear user ID:', error);
-    }
-  }
-}
 
 /**
- * Get the current user ID without creating a new one
+ * Get the current user ID without creating a new one (internal use only)
  */
-export function getCurrentUserId(): string | null {
+function getCurrentUserId(): string | null {
   if (typeof window === 'undefined') {
     return null;
   }
@@ -71,9 +58,4 @@ export function getCurrentUserId(): string | null {
   }
 }
 
-/**
- * Check if user has an existing ID (useful for determining if they're a returning user)
- */
-export function isReturningUser(): boolean {
-  return getCurrentUserId() !== null;
-} 
+ 

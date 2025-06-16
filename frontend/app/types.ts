@@ -37,11 +37,6 @@ export interface HistoryItem {
   execution_time?: number
 }
 
-export interface GenerationFormProps {
-  onGenerationStart: () => void;
-  onGenerationComplete: (result: GenerationResponse) => void;
-  isGenerating: boolean;
-}
 
 export interface GenerationResultProps {
   result: GenerationResponse | null;

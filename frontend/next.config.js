@@ -1,8 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    domains: ['replicate.delivery', 'runway.com', 'localhost'],
+  reactStrictMode: true,
+  swcMinify: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
   },
-}
+  images: {
+    domains: ['icgwpkroorulmsfdiuoh.supabase.co'],
+  }
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig;

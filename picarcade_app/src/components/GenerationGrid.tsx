@@ -3,10 +3,9 @@
 import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Download, Heart, Share2, Trash2, Maximize2, MoreHorizontal } from 'lucide-react'
+import { Download, Heart, Share2, Trash2, Maximize2 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { GenerationResult } from '@/lib/api-clients'
-import { formatBytes } from '@/lib/utils'
 
 interface GenerationGridProps {
   generations: GenerationResult[]

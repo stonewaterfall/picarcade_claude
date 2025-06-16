@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Upload, Link2, User, ShoppingBag, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, Link2, User, ShoppingBag, Loader2, AlertCircle, CheckCircle, X } from 'lucide-react';
 
 interface VirtualTryOnProps {
   onSubmit: (prompt: string) => void;
   isGenerating: boolean;
-  availableReferences: Array<{ tag: string; image_url: string }>;
+  availableReferences: Array<{ tag: string; image_url: string; description?: string }>;
+  onClose: () => void;
 }
 
 export const VirtualTryOn: React.FC<VirtualTryOnProps> = ({
   onSubmit,
   isGenerating,
-  availableReferences
+  availableReferences,
+  onClose
 }) => {
   const [selectedReference, setSelectedReference] = useState<string>('');
   const [clothingUrl, setClothingUrl] = useState<string>('');
@@ -80,9 +82,10 @@ export const VirtualTryOn: React.FC<VirtualTryOnProps> = ({
       return;
     }
 
-    // Create the virtual try-on prompt
-    const prompt = `Put @${selectedReference} in this outfit: ${clothingUrl}`;
+    // Create the virtual try-on prompt with enhanced Runway Gen-4 syntax
+    const prompt = `Put @${selectedReference} in this outfit from ${clothingUrl}`;
     onSubmit(prompt);
+    onClose(); // Close the modal after submission
   };
 
   const getQuickPrompts = () => [
@@ -93,10 +96,19 @@ export const VirtualTryOn: React.FC<VirtualTryOnProps> = ({
   ];
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-      <div className="flex items-center gap-2 mb-4">
-        <ShoppingBag className="h-5 w-5 text-purple-600" />
-        <h3 className="text-lg font-semibold text-gray-900">Virtual Try-On</h3>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <ShoppingBag className="h-5 w-5 text-purple-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Virtual Try-On</h3>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <X className="h-5 w-5 text-gray-500" />
+        </button>
       </div>
       
       <div className="space-y-4">
@@ -180,7 +192,8 @@ export const VirtualTryOn: React.FC<VirtualTryOnProps> = ({
                   key={index}
                   onClick={() => {
                     if (clothingUrl) {
-                      onSubmit(`${prompt}: ${clothingUrl}`);
+                      onSubmit(`${prompt} from ${clothingUrl}`);
+                      onClose();
                     } else {
                       alert('Please enter a clothing URL first');
                     }
@@ -217,16 +230,6 @@ export const VirtualTryOn: React.FC<VirtualTryOnProps> = ({
           )}
         </button>
       </div>
-
-      {/* Example URLs */}
-      <div className="mt-6 pt-4 border-t border-gray-100">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Example URLs:</h4>
-                 <div className="space-y-1 text-xs text-gray-500">
-           <p>• Australian stores: myer.com.au, davidjones.com, theiconic.com.au</p>
-           <p>• Global brands: zara.com, h&m.com, uniqlo.com, gap.com</p>
-           <p>• Shopping sites: amazon.com, asos.com, target.com</p>
-           <p>• Direct image links ending in .jpg, .png, .webp</p>
-         </div>
       </div>
     </div>
   );

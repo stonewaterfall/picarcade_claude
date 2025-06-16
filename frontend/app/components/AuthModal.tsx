@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useAuth } from './AuthProvider'
-import { X, Mail, Lock, User } from 'lucide-react'
+import { X, Mail, Lock } from 'lucide-react'
 
 interface AuthModalProps {
   isOpen: boolean

@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Paperclip, MapPin, Image, Smile, Mic, Loader2, X, History, Clock, Tag, User, LogOut, RotateCcw } from 'lucide-react';
-import { generateContent, uploadImage } from '../lib/api';
-import type { GenerationResponse, UploadResponse, HistoryItem } from '../types';
+import { Search, Paperclip, Image, Mic, Loader2, X, History, Clock, Tag, User, LogOut, RotateCcw, ShoppingBag } from 'lucide-react';
+import { generateContent, uploadImage, getUserReferences } from '../lib/api';
+import type { GenerationResponse, UploadResponse, HistoryItem, Reference } from '../types';
 import GenerationHistory from './GenerationHistory';
 import ReferencesPanel from './ReferencesPanel';
 import TagImageModal from './TagImageModal';
 import { AuthModal } from './AuthModal';
+import { VirtualTryOn } from './VirtualTryOn';
 import { useAuth } from './AuthProvider';
 import { getOrCreateUserId } from '../lib/userUtils';
 
@@ -28,6 +29,8 @@ const PerplexityInterface = () => {
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
+  const [availableReferences, setAvailableReferences] = useState<Reference[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -254,6 +257,75 @@ const PerplexityInterface = () => {
     }
   };
 
+  // NEW: Smart placeholder with reference awareness
+  const getSmartPlaceholder = (): string => {
+    if (isGenerating) {
+      return "AI is analyzing your intent...";
+    }
+    
+    const mentions = parseReferenceMentions(inputValue);
+    
+    if (mentions.length > 0) {
+      if (result?.output_url) {
+        return "Use @references with this image (e.g., 'put @me on the horse')...";
+      }
+      return "Reference detected! Try 'put @me on a horse' or 'apply this style to @me'...";
+    }
+    
+    if (result?.output_url && uploadedImages.length > 0) {
+      return "Describe how to combine or edit these images...";
+    }
+    
+    if (result?.output_url) {
+      return "Tell me how to edit this image, or use @references...";
+    }
+    
+    if (uploadedImages.length > 0) {
+      return "Describe what to do with your uploaded images...";
+    }
+    
+    return "Describe what you want to create, or use @references...";
+  };
+
+  // NEW: Parse @mentions from current input
+  const parseReferenceMentions = (text: string): string[] => {
+    const mentionRegex = /@([a-zA-Z0-9_-]+)/g;
+    const mentions = [];
+    let match;
+    while ((match = mentionRegex.exec(text)) !== null) {
+      mentions.push(match[1]);
+    }
+    return mentions;
+  };
+
+  // NEW: Enhanced context status with reference detection
+  const getContextStatus = (): string => {
+    const contexts = [];
+    const mentions = parseReferenceMentions(inputValue);
+    
+    if (result?.output_url) {
+      contexts.push("🖼️ Active image detected");
+    }
+    
+    if (uploadedImages.length > 0) {
+      contexts.push(`📤 ${uploadedImages.length} uploaded image${uploadedImages.length > 1 ? 's' : ''}`);
+    }
+    
+    if (mentions.length > 0) {
+      contexts.push(`🏷️ ${mentions.length} reference${mentions.length > 1 ? 's' : ''} (@${mentions.join(', @')})`);
+    }
+    
+    if (sessionId) {
+      contexts.push("🔄 Editing session active");
+    }
+    
+    if (contexts.length === 0) {
+      return "🆕 Starting fresh creation";
+    }
+    
+    return contexts.join(" • ");
+  };
+
   const handleStartFresh = async () => {
     if (isGenerating) return;
     
@@ -281,7 +353,22 @@ const PerplexityInterface = () => {
     setHistoryRefreshTrigger(prev => prev + 1);
   };
 
+  // Load available references for Virtual Try-On
+  const loadReferences = async () => {
+    try {
+      const references = await getUserReferences(userId);
+      setAvailableReferences(references);
+    } catch (error) {
+      console.warn('Failed to load references:', error);
+      setAvailableReferences([]);
+    }
+  };
 
+  // Load references when Virtual Try-On is opened
+  const handleVirtualTryOnOpen = () => {
+    loadReferences();
+    setShowVirtualTryOn(true);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
@@ -375,7 +462,7 @@ const PerplexityInterface = () => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Let's make something amazing..."
+                placeholder={getSmartPlaceholder()}
                 disabled={isGenerating}
                 className="flex-1 bg-transparent text-white placeholder-gray-400 text-lg outline-none disabled:opacity-50"
               />
@@ -390,6 +477,16 @@ const PerplexityInterface = () => {
                   title="Start fresh - Clear all images and start over"
                 >
                   <RotateCcw className="w-5 h-5 text-orange-400 hover:text-orange-300" />
+                </button>
+                
+                <button 
+                  type="button"
+                  onClick={() => setShowVirtualTryOn(true)}
+                  className="p-1 hover:bg-gray-700/50 rounded-lg transition-colors relative"
+                  disabled={isGenerating}
+                  title="Virtual Try-On - Try outfits with @references"
+                >
+                  <ShoppingBag className="w-5 h-5 text-purple-400 hover:text-purple-300" />
                 </button>
                 
                 <button 
@@ -490,10 +587,37 @@ const PerplexityInterface = () => {
           </div>
         )}
 
-        {/* Status Messages */}
+        {/* Smart Status Messages with Reference Detection */}
         {isGenerating && (
           <div className="text-center mb-8">
-            <p className="text-gray-400 text-lg">Creating something amazing...</p>
+            <div className="bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 shadow-2xl">
+              <p className="text-cyan-400 text-lg flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                AI is analyzing your intent...
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                {getContextStatus()}
+              </p>
+              {parseReferenceMentions(inputValue).length > 0 && (
+                <div className="mt-3 p-2 bg-purple-500/20 border border-purple-500/30 rounded-lg">
+                  <p className="text-purple-300 text-xs font-medium">
+                    🤖 Detected Runway Gen-4 Operation: Advanced reference-based generation
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Reference Detection Indicator (when not generating) */}
+        {!isGenerating && parseReferenceMentions(inputValue).length > 0 && (
+          <div className="text-center mb-8">
+            <div className="bg-purple-600/20 backdrop-blur-sm border border-purple-500/50 rounded-2xl p-3 shadow-2xl">
+              <p className="text-purple-300 text-sm flex items-center justify-center gap-2">
+                <Tag className="w-4 h-4" />
+                Reference detected: @{parseReferenceMentions(inputValue).join(', @')} → Runway Gen-4 ready
+              </p>
+            </div>
           </div>
         )}
 
@@ -615,7 +739,24 @@ const PerplexityInterface = () => {
                     )}
                     {result.input_image_used && (
                       <p className="text-xs text-blue-400">
-                        Edited from: {result.input_image_used.substring(0, 50)}...
+                        Base image: {result.input_image_used.substring(0, 50)}...
+                      </p>
+                    )}
+                    {result.references_used && result.references_used.length > 0 && (
+                      <div className="mt-2 p-2 bg-purple-500/10 rounded-lg">
+                        <p className="text-purple-300 text-xs font-medium mb-1">
+                          🏷️ References used:
+                        </p>
+                        {result.references_used.map((ref, index) => (
+                          <p key={index} className="text-purple-400 text-xs">
+                            @{ref.tag}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {result.metadata?.reference_operation && (
+                      <p className="text-xs text-purple-400 mt-1">
+                        Operation: {result.metadata.reference_operation.replace('-', ' ')}
                       </p>
                     )}
                   </>
@@ -696,6 +837,26 @@ const PerplexityInterface = () => {
           onClose={() => setShowAuthModal(false)}
           defaultMode="signin"
         />
+
+        {/* Virtual Try-On Modal */}
+        {showVirtualTryOn && (
+          <VirtualTryOn
+            onSubmit={(prompt) => {
+              setInputValue(prompt);
+              setShowVirtualTryOn(false);
+              // Auto-submit the generated prompt
+              setTimeout(() => {
+                const form = document.querySelector('form');
+                if (form) {
+                  form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                }
+              }, 100);
+            }}
+            isGenerating={isGenerating}
+            availableReferences={availableReferences}
+            onClose={() => setShowVirtualTryOn(false)}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,24 +1,14 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PromptInput } from '@/components/PromptInput'
-import { GenerationGrid } from '@/components/GenerationGrid'
+import { Header } from '@/components/ui/header'
+import { Sidebar } from '@/components/ui/sidebar'
+import { ToolHeader } from '@/components/ui/tool-header'
+import { CreationsSection } from '@/components/ui/creations-section'
 import { useAppStore } from '@/lib/store'
 import { AIAPIManager, GenerationRequest } from '@/lib/api-clients'
 import { calculateCreditCost } from '@/lib/subscription-tiers'
-import { 
-  Palette, 
-  Video, 
-  Wand2, 
-  Search, 
-  Settings, 
-  User, 
-  CreditCard,
-  Menu,
-  X
-} from 'lucide-react'
 
 export default function Home() {
   const [apiManager, setApiManager] = useState<AIAPIManager | null>(null)
@@ -138,13 +128,6 @@ export default function Home() {
     }
   }, [apiManager, addGeneration, updateGeneration, addToHistory, updateCredits, setIsGenerating])
 
-  const tools = [
-    { id: 'generate', icon: Palette, label: 'Generate', description: 'Create images and videos from text' },
-    { id: 'enhance', icon: Wand2, label: 'Enhance', description: 'Improve and upscale existing content' },
-    { id: 'edit', icon: Video, label: 'Edit', description: 'Advanced editing and manipulation' },
-    { id: 'analyze', icon: Search, label: 'Analyze', description: 'Understand and describe content' }
-  ]
-
   const generationsList = Object.values(generations).sort((a, b) => 
     new Date(b.metadata?.createdAt || 0).getTime() - new Date(a.metadata?.createdAt || 0).getTime()
   )
@@ -162,133 +145,37 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-40">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden"
-            >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              PicArcade
-            </h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {user && (
-              <div className="text-sm text-gray-600">
-                Credits: {user.creditsRemaining}
-              </div>
-            )}
-            <Button variant="outline" size="sm">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Upgrade
-            </Button>
-            <Button variant="ghost" size="icon">
-              <User className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-      </header>
+      <Header 
+        user={user}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+      />
 
       <div className="flex">
-        {/* Sidebar */}
-        <aside className={`
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-          lg:translate-x-0 transition-transform duration-200 ease-in-out
-          fixed lg:relative z-30 w-64 h-screen bg-white border-r
-        `}>
-          <div className="p-4">
-            <h2 className="font-semibold text-gray-900 mb-4">Tools</h2>
-            <div className="space-y-2">
-              {tools.map((tool) => (
-                <Button
-                  key={tool.id}
-                  variant={selectedTool === tool.id ? "default" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => setSelectedTool(tool.id as any)}
-                >
-                  <tool.icon className="w-4 h-4 mr-3" />
-                  <div className="text-left">
-                    <div className="font-medium">{tool.label}</div>
-                    <div className="text-xs text-gray-500">{tool.description}</div>
-                  </div>
-                </Button>
-              ))}
-            </div>
+        <Sidebar
+          sidebarOpen={sidebarOpen}
+          selectedTool={selectedTool}
+          setSelectedTool={setSelectedTool}
+          generationsList={generationsList}
+          pendingGenerations={pendingGenerations}
+          user={user}
+        />
 
-            {/* Quick Stats */}
-            <div className="mt-8">
-              <h3 className="font-semibold text-gray-900 mb-2">Statistics</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Generations</span>
-                  <span className="font-medium">{generationsList.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Processing</span>
-                  <span className="font-medium">{pendingGenerations.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Credits Used</span>
-                  <span className="font-medium">{user?.creditsUsed || 0}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
         <main className="flex-1 p-4 lg:p-6 space-y-6">
-          {/* Tool Header */}
-          <div className="bg-white rounded-lg p-6 border">
-            <div className="flex items-center gap-3 mb-2">
-              {tools.find(t => t.id === selectedTool)?.icon && (
-                React.createElement(tools.find(t => t.id === selectedTool)!.icon, {
-                  className: "w-6 h-6 text-blue-600"
-                })
-              )}
-              <h2 className="text-2xl font-bold">
-                {tools.find(t => t.id === selectedTool)?.label}
-              </h2>
-            </div>
-            <p className="text-gray-600">
-              {tools.find(t => t.id === selectedTool)?.description}
-            </p>
-          </div>
+          <ToolHeader selectedTool={selectedTool} />
 
-          {/* Prompt Input */}
           <PromptInput
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
           />
 
-          {/* Generations Grid */}
-          <div className="bg-white rounded-lg p-6 border">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">Your Creations</h3>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
-              </div>
-            </div>
-            
-            <GenerationGrid
-              generations={generationsList}
-              onDelete={removeGeneration}
-              onFavorite={(id) => {
-                // Implement favorite functionality
-                console.log('Favorite:', id)
-              }}
-            />
-          </div>
+          <CreationsSection
+            generationsList={generationsList}
+            removeGeneration={removeGeneration}
+            onFavorite={(id) => {
+              console.log('Favorite:', id)
+            }}
+          />
         </main>
       </div>
     </div>
